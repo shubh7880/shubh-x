@@ -764,12 +764,17 @@ function renderPlaceDetail(id) {
   document.getElementById('footer').style.display = 'block';
 
   // Init detail map
-  setTimeout(() => {
+  setTimeout(async () => {
     if (document.getElementById('detailMap')) {
       const map = L.map('detailMap').setView(dest.coords, 10);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
       }).addTo(map);
+
+      // Add India boundary on detail map too
+      const boundary = await loadIndiaBoundary();
+      addIndiaBoundary(map, boundary);
+
       const icon = L.divIcon({
         className: 'custom-marker',
         html: '<div style="width:24px;height:24px;background:var(--saffron);border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',
@@ -930,16 +935,71 @@ function renderBookingPage() {
 // ─── Map Functions ───────────────────────────────────────────────────────────
 
 let destMap = null;
+let indiaBoundaryCache = null;
 
-function initDestinationsMap() {
+async function loadIndiaBoundary() {
+  if (indiaBoundaryCache) return indiaBoundaryCache;
+  try {
+    const resp = await fetch('india-boundary.geojson');
+    indiaBoundaryCache = await resp.json();
+    return indiaBoundaryCache;
+  } catch (e) {
+    console.warn('Could not load India boundary:', e);
+    return null;
+  }
+}
+
+function addIndiaBoundary(map, geojson) {
+  if (!geojson) return;
+
+  // Style for India boundary — saffron outline, light fill
+  const indiaStyle = {
+    color: '#D4600E',
+    weight: 2.5,
+    opacity: 0.9,
+    fillColor: '#FEF7EC',
+    fillOpacity: 0.15,
+    dashArray: null,
+  };
+
+  // Style for island territories
+  const islandStyle = {
+    color: '#D4600E',
+    weight: 1.5,
+    opacity: 0.7,
+    fillColor: '#FEF7EC',
+    fillOpacity: 0.12,
+  };
+
+  L.geoJSON(geojson, {
+    style: function(feature) {
+      return feature.properties.type === 'island' ? islandStyle : indiaStyle;
+    }
+  }).addTo(map);
+}
+
+async function initDestinationsMap() {
   if (destMap) { destMap.remove(); destMap = null; }
 
-  destMap = L.map('destMap').setView([22.5, 78.9], 5);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  destMap = L.map('destMap', {
+    minZoom: 4,
     maxZoom: 18,
+  }).setView([22.5, 78.9], 5);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 19,
   }).addTo(destMap);
+
+  // Add India label overlay on top
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    pane: 'shadowPane',
+  }).addTo(destMap);
+
+  // Load and display official India boundary
+  const boundary = await loadIndiaBoundary();
+  addIndiaBoundary(destMap, boundary);
 
   destinations.forEach(d => {
     const icon = L.divIcon({

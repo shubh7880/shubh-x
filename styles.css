@@ -786,6 +786,24 @@ input { font-family: inherit; }
   overflow: hidden;
   box-shadow: 0 4px 30px rgba(0,0,0,0.1);
   position: relative;
+  border: 2px solid rgba(212, 96, 14, 0.15);
+}
+
+.map-container::after {
+  content: 'Map of India as per Government of India';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: rgba(27, 20, 100, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 10px;
+  border-radius: 3px;
+  z-index: 1000;
+  pointer-events: none;
 }
 
 .map-container .leaflet-popup-content-wrapper {
