@@ -952,23 +952,25 @@ async function loadIndiaBoundary() {
 function addIndiaBoundary(map, geojson) {
   if (!geojson) return;
 
-  // Style for India boundary — saffron outline, light fill
+  // Clean filled territory — official Govt. of India map style
   const indiaStyle = {
-    color: '#D4600E',
-    weight: 2.5,
-    opacity: 0.9,
-    fillColor: '#FEF7EC',
-    fillOpacity: 0.15,
-    dashArray: null,
+    color: '#4a5568',
+    weight: 1.8,
+    opacity: 0.55,
+    fillColor: '#ffffff',
+    fillOpacity: 0.55,
+    lineJoin: 'round',
+    lineCap: 'round',
   };
 
-  // Style for island territories
   const islandStyle = {
-    color: '#D4600E',
-    weight: 1.5,
-    opacity: 0.7,
-    fillColor: '#FEF7EC',
-    fillOpacity: 0.12,
+    color: '#4a5568',
+    weight: 1.2,
+    opacity: 0.45,
+    fillColor: '#ffffff',
+    fillOpacity: 0.5,
+    lineJoin: 'round',
+    lineCap: 'round',
   };
 
   L.geoJSON(geojson, {
