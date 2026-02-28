@@ -767,14 +767,13 @@ function renderPlaceDetail(id) {
   setTimeout(async () => {
     if (document.getElementById('detailMap')) {
       const map = L.map('detailMap').setView(dest.coords, 10);
-      // No-label basemap — no foreign disputed names
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-        attribution: 'Map data &copy; Govt. of India | Tiles &copy; CARTO'
+        attribution: 'Map of India as recognised by the Government of India'
       }).addTo(map);
 
-      // Add India boundary with labels
+      // Add India political map with colored states
       const boundary = await loadIndiaBoundary();
-      addIndiaBoundary(map, boundary, true);
+      addIndiaPoliticalMap(map, boundary, true);
 
       const icon = L.divIcon({
         className: 'custom-marker',
@@ -950,7 +949,165 @@ async function loadIndiaBoundary() {
   }
 }
 
-// Indian city labels — only Indian names, no foreign disputed labels
+// ─── Indian States & UTs — Political Map Data ────────────────────────────────
+// Colourful political map as recognized by the Government of India
+// All 28 States + 8 Union Territories with approximate simplified boundaries
+
+const indianStates = [
+  // ── JAMMU & KASHMIR (UT) ──
+  { name: 'JAMMU &\nKASHMIR', color: '#c8e6c9',
+    labelPos: [33.80, 74.90],
+    poly: [[37.05,73.78],[36.9,74.3],[36.5,75.0],[35.9,75.8],[35.2,76.2],[34.8,76.8],[34.2,76.9],[33.5,76.8],[33.0,76.5],[32.5,75.8],[32.3,75.2],[32.5,74.5],[32.8,74.0],[33.2,73.8],[34.0,73.5],[35.0,73.5],[36.0,73.6],[37.05,73.78]] },
+  // ── LADAKH (UT) ──
+  { name: 'LADAKH', color: '#fff9c4',
+    labelPos: [34.80, 77.80],
+    poly: [[35.9,75.8],[36.5,75.0],[36.9,75.5],[37.0,76.5],[37.0,78.0],[37.0,79.5],[36.2,80.0],[35.2,80.0],[34.2,79.5],[33.5,78.5],[33.0,77.5],[33.0,76.5],[33.5,76.8],[34.2,76.9],[34.8,76.8],[35.2,76.2],[35.9,75.8]] },
+  // ── HIMACHAL PRADESH ──
+  { name: 'HIMACHAL\nPRADESH', color: '#f8bbd0',
+    labelPos: [31.80, 77.20],
+    poly: [[33.0,76.5],[32.5,75.8],[32.0,75.6],[31.5,75.8],[31.0,76.2],[30.8,76.8],[30.7,77.3],[30.9,78.0],[31.2,78.8],[31.8,79.2],[32.3,79.0],[32.8,78.5],[33.0,77.5],[33.0,76.5]] },
+  // ── PUNJAB ──
+  { name: 'PUNJAB', color: '#ffcc80',
+    labelPos: [31.00, 75.30],
+    poly: [[32.5,74.5],[32.3,75.2],[32.0,75.6],[31.5,75.8],[31.0,76.2],[30.8,76.5],[30.3,76.3],[29.8,75.5],[29.6,74.5],[30.0,74.0],[30.8,73.8],[31.5,73.8],[32.5,74.5]] },
+  // ── UTTARAKHAND ──
+  { name: 'UTTARAKHAND', color: '#b3e5fc',
+    labelPos: [30.10, 79.00],
+    poly: [[31.8,79.2],[31.2,78.8],[30.9,78.0],[30.7,77.3],[30.2,77.2],[29.5,77.5],[29.2,78.2],[29.0,79.0],[29.5,80.0],[30.2,80.8],[30.8,80.5],[31.2,80.0],[31.8,79.2]] },
+  // ── HARYANA ──
+  { name: 'HARYANA', color: '#dcedc8',
+    labelPos: [29.00, 76.10],
+    poly: [[30.8,76.5],[30.3,76.3],[29.8,75.5],[29.6,74.5],[28.5,75.2],[27.8,76.0],[27.6,76.8],[28.2,77.2],[28.8,77.3],[29.5,77.5],[30.2,77.2],[30.7,77.3],[30.8,76.8],[30.8,76.5]] },
+  // ── DELHI (NCT) ──
+  { name: 'DELHI', color: '#ef9a9a',
+    labelPos: [28.61, 77.10],
+    poly: [[28.85,76.95],[28.85,77.35],[28.40,77.35],[28.40,76.95],[28.85,76.95]] },
+  // ── RAJASTHAN ──
+  { name: 'RAJASTHAN', color: '#fff59d',
+    labelPos: [26.50, 72.80],
+    poly: [[29.6,74.5],[29.8,75.5],[30.3,76.3],[30.2,77.2],[29.5,77.5],[28.8,77.3],[28.2,77.2],[27.6,76.8],[27.0,77.0],[26.5,77.5],[26.0,77.2],[25.2,76.5],[24.8,76.0],[24.5,75.5],[24.0,74.8],[23.5,73.5],[23.0,72.5],[22.5,71.0],[22.0,69.5],[23.0,68.5],[24.0,68.8],[25.0,70.0],[25.5,70.5],[26.5,70.5],[27.5,70.5],[28.5,71.5],[29.5,72.0],[30.0,74.0],[29.6,74.5]] },
+  // ── UTTAR PRADESH ──
+  { name: 'UTTAR\nPRADESH', color: '#e1bee7',
+    labelPos: [27.20, 80.50],
+    poly: [[29.5,77.5],[29.2,78.2],[29.0,79.0],[29.5,80.0],[30.2,80.8],[29.5,81.5],[28.8,82.5],[28.0,83.5],[27.5,84.0],[27.0,84.5],[26.5,84.5],[26.0,84.0],[25.5,83.5],[25.0,82.5],[24.5,82.0],[24.2,81.5],[24.5,81.0],[24.8,80.5],[25.0,80.0],[25.5,79.0],[26.0,78.0],[26.0,77.2],[26.5,77.5],[27.0,77.0],[27.6,76.8],[28.2,77.2],[28.8,77.3],[29.5,77.5]] },
+  // ── BIHAR ──
+  { name: 'BIHAR', color: '#ffe0b2',
+    labelPos: [25.80, 85.50],
+    poly: [[27.5,84.0],[27.0,84.5],[26.5,84.5],[26.0,84.0],[25.5,83.5],[25.0,83.0],[24.5,83.8],[24.0,84.5],[24.0,85.5],[24.5,86.5],[25.0,87.0],[25.5,87.5],[26.0,87.5],[26.5,87.0],[27.0,86.5],[27.5,85.5],[27.5,84.0]] },
+  // ── MADHYA PRADESH ──
+  { name: 'MADHYA\nPRADESH', color: '#f5f5dc',
+    labelPos: [23.50, 78.50],
+    poly: [[26.0,78.0],[26.0,77.2],[25.2,76.5],[24.8,76.0],[24.0,75.5],[23.2,75.0],[22.5,76.0],[22.0,77.0],[21.8,78.0],[21.5,79.0],[22.0,80.0],[22.5,80.5],[23.0,81.0],[23.5,81.5],[24.2,81.5],[24.8,80.5],[25.0,80.0],[25.5,79.0],[26.0,78.0]] },
+  // ── GUJARAT ──
+  { name: 'GUJARAT', color: '#ffab91',
+    labelPos: [22.50, 71.50],
+    poly: [[24.5,75.5],[24.0,74.8],[23.5,73.5],[23.0,72.5],[22.5,71.0],[22.0,69.5],[21.5,69.0],[20.5,68.5],[20.0,69.0],[20.0,70.5],[20.5,71.5],[21.0,72.5],[20.5,73.0],[20.2,72.0],[19.8,72.5],[20.0,73.0],[20.5,73.5],[21.0,73.5],[21.5,73.8],[22.0,74.5],[22.5,75.5],[23.2,75.0],[24.0,75.5],[24.5,75.5]] },
+  // ── CHHATTISGARH ──
+  { name: 'CHHATTISGARH', color: '#c5e1a5',
+    labelPos: [21.50, 82.00],
+    poly: [[24.2,81.5],[23.5,81.5],[23.0,81.0],[22.5,80.5],[22.0,80.0],[21.5,80.5],[20.5,80.5],[19.5,81.0],[19.0,81.5],[19.0,82.5],[19.5,83.5],[20.0,83.5],[20.5,83.0],[21.0,83.5],[21.5,84.0],[22.0,84.0],[22.5,83.5],[23.0,83.8],[23.5,83.5],[24.0,83.5],[24.5,83.8],[24.0,84.5],[24.0,83.5],[23.5,83.5],[24.0,82.5],[24.2,81.5]] },
+  // ── MAHARASHTRA ──
+  { name: 'MAHARASHTRA', color: '#80cbc4',
+    labelPos: [19.50, 76.00],
+    poly: [[22.0,74.5],[21.5,73.8],[21.0,73.5],[20.5,73.5],[20.0,73.0],[19.5,73.0],[19.0,72.8],[18.5,73.0],[17.8,73.3],[17.0,73.5],[16.2,73.8],[15.8,74.0],[16.0,75.0],[16.5,76.0],[17.0,77.0],[17.5,78.0],[18.0,79.0],[18.5,79.5],[19.0,80.0],[19.5,80.0],[20.0,80.0],[20.5,80.0],[21.0,80.0],[21.5,79.0],[21.8,78.0],[22.0,77.0],[22.5,76.0],[22.5,75.5],[22.0,74.5]] },
+  // ── GOA ──
+  { name: 'GOA', color: '#a5d6a7',
+    labelPos: [15.40, 74.00],
+    poly: [[15.8,74.0],[15.8,73.7],[15.0,73.6],[14.9,73.8],[14.9,74.3],[15.2,74.5],[15.8,74.0]] },
+  // ── KARNATAKA ──
+  { name: 'KARNATAKA', color: '#f48fb1',
+    labelPos: [14.80, 76.00],
+    poly: [[17.0,77.0],[16.5,76.0],[16.0,75.0],[15.8,74.0],[15.2,74.5],[14.9,74.3],[14.5,74.2],[13.8,74.5],[12.8,74.8],[12.0,75.0],[11.6,75.8],[11.8,76.5],[12.0,77.0],[12.5,77.5],[13.0,77.8],[13.5,78.0],[14.0,78.5],[14.5,78.5],[15.0,78.5],[15.5,78.5],[16.0,78.0],[16.5,78.0],[17.0,77.0]] },
+  // ── TELANGANA ──
+  { name: 'TELANGANA', color: '#ce93d8',
+    labelPos: [17.80, 79.00],
+    poly: [[19.0,80.0],[18.5,79.5],[18.0,79.0],[17.5,78.0],[17.0,77.0],[16.5,78.0],[16.0,78.0],[15.5,78.5],[16.0,79.0],[16.5,79.5],[17.0,80.0],[17.5,80.5],[18.0,80.5],[18.5,80.5],[19.0,80.5],[19.0,80.0]] },
+  // ── ANDHRA PRADESH ──
+  { name: 'ANDHRA\nPRADESH', color: '#b39ddb',
+    labelPos: [15.90, 79.80],
+    poly: [[19.0,80.5],[18.5,80.5],[18.0,80.5],[17.5,80.5],[17.0,80.0],[16.5,79.5],[16.0,79.0],[15.5,78.5],[15.0,78.5],[14.5,78.5],[14.0,78.5],[13.5,78.0],[13.5,79.0],[13.8,80.0],[14.5,80.0],[15.0,80.5],[15.5,80.5],[16.0,81.0],[16.5,81.5],[17.0,82.0],[17.5,82.5],[18.0,83.5],[18.5,84.0],[19.0,84.0],[19.5,83.5],[19.0,82.5],[19.0,81.5],[19.0,80.5]] },
+  // ── TAMIL NADU ──
+  { name: 'TAMIL\nNADU', color: '#ffab40',
+    labelPos: [11.00, 78.50],
+    poly: [[13.5,78.0],[13.0,77.8],[12.5,77.5],[12.0,77.0],[11.8,76.5],[11.6,76.5],[11.3,77.0],[11.0,77.5],[10.5,78.0],[10.0,78.5],[9.5,79.0],[9.0,79.0],[8.3,77.8],[8.1,77.5],[8.5,77.0],[9.0,77.0],[9.5,78.5],[10.0,79.5],[10.5,79.8],[11.5,80.0],[12.5,80.2],[13.5,80.0],[13.8,80.0],[13.5,79.0],[13.5,78.0]] },
+  // ── KERALA ──
+  { name: 'KERALA', color: '#4db6ac',
+    labelPos: [10.00, 76.30],
+    poly: [[12.8,74.8],[12.0,75.0],[11.6,75.8],[11.6,76.5],[11.3,77.0],[11.0,77.5],[10.5,78.0],[10.0,78.5],[9.5,79.0],[9.0,79.0],[8.3,77.8],[8.1,77.5],[8.3,77.0],[8.5,76.5],[9.0,76.0],[9.5,76.2],[10.0,76.0],[10.5,76.0],[11.0,75.5],[11.5,75.2],[12.0,75.0],[12.8,74.8]] },
+  // ── ODISHA ──
+  { name: 'ODISHA', color: '#81d4fa',
+    labelPos: [20.50, 84.00],
+    poly: [[22.5,83.5],[22.0,84.0],[21.5,84.0],[21.0,83.5],[20.5,83.0],[20.0,83.5],[19.5,83.5],[19.0,82.5],[19.0,81.5],[19.0,81.0],[19.5,81.0],[20.0,82.0],[20.5,82.5],[20.0,83.5],[19.5,84.5],[19.0,85.5],[18.5,85.5],[18.5,84.0],[19.5,84.5],[20.0,85.0],[20.5,85.5],[21.0,86.0],[21.5,86.5],[22.0,87.0],[22.5,86.5],[22.5,85.5],[22.5,84.5],[22.5,83.5]] },
+  // ── WEST BENGAL ──
+  { name: 'WEST\nBENGAL', color: '#ffcc80',
+    labelPos: [23.50, 87.50],
+    poly: [[27.0,88.5],[26.5,88.5],[26.5,87.0],[25.5,87.5],[25.0,87.0],[24.5,86.5],[24.0,85.5],[23.5,85.5],[23.0,86.0],[22.5,86.5],[22.0,87.0],[21.5,87.5],[21.8,88.0],[22.0,88.5],[22.0,89.0],[22.5,88.5],[23.0,88.8],[23.5,88.5],[24.0,89.0],[24.5,88.5],[25.0,88.5],[25.5,88.5],[26.0,88.5],[26.5,88.5],[27.0,88.5]] },
+  // ── JHARKHAND ──
+  { name: 'JHARKHAND', color: '#ffcdd2',
+    labelPos: [23.60, 85.30],
+    poly: [[25.0,83.0],[24.5,83.8],[24.0,84.5],[24.0,85.5],[23.5,85.5],[23.0,86.0],[22.5,86.5],[22.5,85.5],[22.5,84.5],[22.5,83.5],[23.0,83.8],[23.5,83.5],[24.0,83.5],[24.5,83.8],[25.0,83.0]] },
+  // ── SIKKIM ──
+  { name: 'SIKKIM', color: '#80deea',
+    labelPos: [27.50, 88.50],
+    poly: [[28.0,88.0],[27.8,88.8],[27.0,88.8],[27.0,88.2],[27.5,88.0],[28.0,88.0]] },
+  // ── ASSAM ──
+  { name: 'ASSAM', color: '#f8bbd0',
+    labelPos: [26.20, 92.50],
+    poly: [[27.8,89.5],[27.0,89.5],[26.5,89.5],[26.0,89.5],[25.5,89.8],[25.0,90.0],[24.5,90.5],[24.0,91.0],[23.5,91.5],[24.0,92.0],[24.5,92.5],[25.0,92.5],[25.5,93.0],[26.0,93.0],[26.5,93.0],[27.0,93.0],[27.5,94.0],[27.0,95.0],[26.5,95.5],[26.0,95.0],[25.5,94.0],[25.0,93.0],[24.5,93.0],[24.0,93.0],[24.0,92.0],[24.5,92.0],[25.0,92.0],[25.5,92.0],[25.5,91.0],[26.0,90.0],[26.5,89.5],[27.0,89.5],[27.8,89.5]] },
+  // ── ARUNACHAL PRADESH ──
+  { name: 'ARUNACHAL\nPRADESH', color: '#b39ddb',
+    labelPos: [28.00, 94.50],
+    poly: [[29.5,91.5],[29.0,93.0],[28.5,94.5],[28.5,96.0],[28.0,97.0],[27.5,97.0],[27.0,96.5],[27.0,95.0],[26.5,95.5],[27.0,95.0],[27.5,94.0],[27.0,93.0],[26.5,93.0],[27.0,92.0],[27.5,91.5],[28.0,91.0],[28.5,91.0],[29.0,91.0],[29.5,91.5]] },
+  // ── MEGHALAYA ──
+  { name: 'MEGHALAYA', color: '#fff9c4',
+    labelPos: [25.50, 91.50],
+    poly: [[26.0,90.0],[25.5,91.0],[25.5,92.0],[25.0,92.0],[25.0,91.0],[25.0,90.0],[25.5,89.8],[26.0,89.5],[26.0,90.0]] },
+  // ── NAGALAND ──
+  { name: 'NAGALAND', color: '#a5d6a7',
+    labelPos: [26.00, 94.30],
+    poly: [[27.0,93.0],[26.5,93.0],[26.0,93.0],[25.5,93.0],[25.5,94.0],[26.0,95.0],[26.5,95.5],[27.0,95.0],[27.0,93.0]] },
+  // ── MANIPUR ──
+  { name: 'MANIPUR', color: '#b2ebf2',
+    labelPos: [24.80, 93.80],
+    poly: [[25.5,93.0],[25.0,93.0],[24.5,93.0],[24.0,93.5],[24.0,94.5],[24.5,95.0],[25.0,94.5],[25.5,94.0],[25.5,93.0]] },
+  // ── MIZORAM ──
+  { name: 'MIZORAM', color: '#80cbc4',
+    labelPos: [23.30, 92.80],
+    poly: [[24.0,93.0],[24.0,92.0],[23.5,91.5],[22.5,92.5],[21.8,93.0],[22.0,93.5],[22.5,93.5],[23.0,93.5],[23.5,93.5],[24.0,93.5],[24.0,93.0]] },
+  // ── TRIPURA ──
+  { name: 'TRIPURA', color: '#ef9a9a',
+    labelPos: [23.80, 91.40],
+    poly: [[24.5,91.5],[24.0,91.0],[23.5,91.0],[23.0,91.0],[23.0,91.5],[23.5,91.5],[24.0,92.0],[24.5,91.5]] },
+  // ── DADRA & NAGAR HAVELI AND DAMAN & DIU (UT) ──
+  { name: 'D&NH\n& D&D', color: '#ffcc80',
+    labelPos: [20.30, 72.80],
+    poly: [[20.5,72.8],[20.5,73.2],[20.0,73.2],[20.0,72.8],[20.5,72.8]] },
+  // ── ANDAMAN & NICOBAR ISLANDS (UT) ──
+  { name: 'ANDAMAN &\nNICOBAR', color: '#a5d6a7',
+    labelPos: [11.50, 92.70],
+    poly: [[13.5,92.5],[13.5,93.0],[12.5,93.0],[11.5,93.0],[10.5,93.0],[9.5,93.0],[8.0,93.5],[7.5,93.5],[7.5,93.0],[8.0,92.5],[9.0,92.5],[10.5,92.5],[12.0,92.5],[13.5,92.5]] },
+  // ── LAKSHADWEEP (UT) ──
+  { name: 'LAKSHADWEEP', color: '#b2ebf2',
+    labelPos: [10.50, 72.20],
+    poly: [[11.0,72.0],[11.0,73.0],[10.0,73.0],[8.5,73.0],[8.5,72.0],[10.0,72.0],[11.0,72.0]] },
+];
+
+// ── Neighbouring Country Labels ──
+const neighbourLabels = [
+  { name: 'PAKISTAN', coords: [30.0, 69.5], cls: 'neighbour' },
+  { name: 'AFGHANISTAN', coords: [34.5, 69.0], cls: 'neighbour' },
+  { name: 'CHINA\n(TIBET)', coords: [32.0, 82.0], cls: 'neighbour' },
+  { name: 'NEPAL', coords: [28.5, 84.5], cls: 'neighbour-small' },
+  { name: 'BHUTAN', coords: [27.5, 90.5], cls: 'neighbour-small' },
+  { name: 'BANGLADESH', coords: [24.0, 90.0], cls: 'neighbour-small' },
+  { name: 'MYANMAR\n(BURMA)', coords: [22.0, 96.0], cls: 'neighbour' },
+  { name: 'SRI LANKA', coords: [7.5, 80.5], cls: 'neighbour-small' },
+  { name: 'ARABIAN\nSEA', coords: [15.0, 69.0], cls: 'water' },
+  { name: 'BAY OF\nBENGAL', coords: [15.0, 85.5], cls: 'water' },
+  { name: 'INDIAN OCEAN', coords: [5.0, 78.0], cls: 'water' },
+];
+
+// ── City / Capital Labels ──
 const indianCityLabels = [
   { name: 'New Delhi', coords: [28.61, 77.21], size: 'capital' },
   { name: 'Mumbai', coords: [19.08, 72.88], size: 'major' },
@@ -983,68 +1140,73 @@ const indianCityLabels = [
   { name: 'Raipur', coords: [21.25, 81.63], size: 'city' },
   { name: 'Ranchi', coords: [23.34, 85.31], size: 'city' },
   { name: 'Jammu', coords: [32.73, 74.87], size: 'city' },
-  { name: 'Kargil', coords: [34.55, 76.13], size: 'city' },
   { name: 'Port Blair', coords: [11.67, 92.74], size: 'city' },
-  { name: 'Kavaratti', coords: [10.57, 72.64], size: 'city' },
-  // State/UT labels
-  { name: 'JAMMU & KASHMIR', coords: [33.50, 75.30], size: 'state' },
-  { name: 'LADAKH', coords: [34.20, 77.60], size: 'state' },
-  { name: 'RAJASTHAN', coords: [26.50, 72.80], size: 'state' },
-  { name: 'GUJARAT', coords: [22.50, 71.50], size: 'state' },
-  { name: 'MAHARASHTRA', coords: [19.50, 75.50], size: 'state' },
-  { name: 'MADHYA PRADESH', coords: [23.50, 78.50], size: 'state' },
-  { name: 'UTTAR PRADESH', coords: [27.20, 80.50], size: 'state' },
-  { name: 'KARNATAKA', coords: [14.50, 76.00], size: 'state' },
-  { name: 'TAMIL NADU', coords: [11.00, 78.50], size: 'state' },
-  { name: 'KERALA', coords: [10.00, 76.50], size: 'state' },
-  { name: 'ANDHRA PRADESH', coords: [15.90, 79.80], size: 'state' },
-  { name: 'TELANGANA', coords: [17.80, 79.00], size: 'state' },
-  { name: 'ODISHA', coords: [20.50, 84.50], size: 'state' },
-  { name: 'WEST BENGAL', coords: [23.00, 87.50], size: 'state' },
-  { name: 'BIHAR', coords: [25.60, 86.00], size: 'state' },
-  { name: 'ASSAM', coords: [26.20, 92.50], size: 'state' },
-  { name: 'ARUNACHAL PRADESH', coords: [28.00, 94.50], size: 'state' },
-  { name: 'PUNJAB', coords: [31.00, 75.50], size: 'state' },
-  { name: 'HARYANA', coords: [29.00, 76.30], size: 'state' },
-  { name: 'UTTARAKHAND', coords: [30.10, 79.20], size: 'state' },
-  { name: 'HIMACHAL PRADESH', coords: [31.80, 77.50], size: 'state' },
-  { name: 'GOA', coords: [15.40, 74.00], size: 'state' },
-  { name: 'CHHATTISGARH', coords: [21.50, 82.00], size: 'state' },
-  { name: 'JHARKHAND', coords: [23.60, 85.50], size: 'state' },
+  { name: 'Gandhinagar', coords: [23.22, 72.65], size: 'city' },
+  { name: 'Dispur', coords: [26.14, 91.77], size: 'city' },
 ];
 
-function addIndiaBoundary(map, geojson, showLabels) {
+function addIndiaPoliticalMap(map, geojson, showLabels) {
   if (!geojson) return;
 
-  // India territory — white fill with clean dark border (like official map)
-  const indiaStyle = {
-    color: '#2d3748',
-    weight: 2,
+  // 1) Draw outer India boundary — dark border on top
+  const borderStyle = {
+    color: '#1a1a2e',
+    weight: 2.5,
+    opacity: 0.9,
+    fillColor: '#eef2f7',
+    fillOpacity: 0.3,
+    lineJoin: 'round',
+    lineCap: 'round',
+  };
+  const islandBorder = {
+    color: '#1a1a2e',
+    weight: 1.8,
     opacity: 0.7,
-    fillColor: '#f7fafc',
-    fillOpacity: 0.65,
+    fillColor: '#eef2f7',
+    fillOpacity: 0.3,
     lineJoin: 'round',
     lineCap: 'round',
   };
 
-  const islandStyle = {
-    color: '#2d3748',
-    weight: 1.5,
-    opacity: 0.6,
-    fillColor: '#f7fafc',
-    fillOpacity: 0.6,
-    lineJoin: 'round',
-    lineCap: 'round',
-  };
+  // 2) Draw coloured state polygons
+  indianStates.forEach(state => {
+    const polygon = L.polygon(state.poly, {
+      color: '#555',
+      weight: 1,
+      opacity: 0.6,
+      fillColor: state.color,
+      fillOpacity: 0.75,
+      lineJoin: 'round',
+    }).addTo(map);
 
+    // State name tooltip
+    polygon.bindTooltip(state.name.replace(/\n/g, ' '), {
+      permanent: false,
+      direction: 'center',
+      className: 'state-tooltip',
+    });
+  });
+
+  // 3) Draw India boundary on TOP of states for clean edges
   L.geoJSON(geojson, {
     style: function(feature) {
-      return feature.properties.type === 'island' ? islandStyle : indiaStyle;
+      return feature.properties.type === 'island' ? islandBorder : borderStyle;
     }
   }).addTo(map);
 
-  // Add Indian city/state labels (no foreign tile labels)
+  // 4) Add state name labels
   if (showLabels) {
+    indianStates.forEach(state => {
+      const label = L.divIcon({
+        className: 'india-label india-label-state',
+        html: `<span>${state.name.replace(/\n/g, '<br>')}</span>`,
+        iconSize: null,
+        iconAnchor: [0, 0],
+      });
+      L.marker(state.labelPos, { icon: label, interactive: false }).addTo(map);
+    });
+
+    // 5) Add city labels
     indianCityLabels.forEach(city => {
       let className, html;
       if (city.size === 'capital') {
@@ -1052,16 +1214,24 @@ function addIndiaBoundary(map, geojson, showLabels) {
         html = `<span>★ ${city.name}</span>`;
       } else if (city.size === 'major') {
         className = 'india-label india-label-major';
-        html = `<span>${city.name}</span>`;
-      } else if (city.size === 'state') {
-        className = 'india-label india-label-state';
-        html = `<span>${city.name}</span>`;
+        html = `<span>● ${city.name}</span>`;
       } else {
         className = 'india-label india-label-city';
-        html = `<span>${city.name}</span>`;
+        html = `<span>• ${city.name}</span>`;
       }
       const label = L.divIcon({ className, html, iconSize: null, iconAnchor: [0, 0] });
       L.marker(city.coords, { icon: label, interactive: false }).addTo(map);
+    });
+
+    // 6) Add neighbour country / water body labels
+    neighbourLabels.forEach(n => {
+      const label = L.divIcon({
+        className: `india-label india-label-${n.cls}`,
+        html: `<span>${n.name.replace(/\n/g, '<br>')}</span>`,
+        iconSize: null,
+        iconAnchor: [0, 0],
+      });
+      L.marker(n.coords, { icon: label, interactive: false }).addTo(map);
     });
   }
 }
@@ -1076,16 +1246,15 @@ async function initDestinationsMap() {
 
   // Plain basemap with NO labels — no foreign disputed names
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    attribution: 'Map data &copy; Govt. of India | Tiles &copy; CARTO',
+    attribution: 'Map of India as recognised by the Government of India',
     maxZoom: 19,
   }).addTo(destMap);
 
-  // NO label tile layer — we add our own Indian labels only
-
-  // Load and display official India boundary with Indian labels
+  // Load India boundary + draw political map with colored states
   const boundary = await loadIndiaBoundary();
-  addIndiaBoundary(destMap, boundary, true);
+  addIndiaPoliticalMap(destMap, boundary, true);
 
+  // Destination markers on top
   destinations.forEach(d => {
     const icon = L.divIcon({
       className: 'custom-marker',

@@ -806,43 +806,90 @@ input { font-family: inherit; }
   pointer-events: none;
 }
 
-/* Indian map labels — replacing foreign tile labels */
+/* ─── Indian Political Map Labels ─────────────────────────────── */
 .india-label {
   pointer-events: none !important;
   white-space: nowrap;
 }
 .india-label span {
   display: inline-block;
+  line-height: 1.3;
 }
+
+/* Capital city (New Delhi) */
 .india-label-capital span {
   font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 700;
-  color: #1a202c;
-  text-shadow: 0 0 4px rgba(255,255,255,0.95), 0 0 8px rgba(255,255,255,0.8);
+  color: #c0392b;
+  text-shadow: 0 0 4px #fff, 0 0 8px #fff, 1px 1px 2px rgba(0,0,0,0.1);
   letter-spacing: 0.5px;
 }
+/* Major cities */
 .india-label-major span {
   font-family: var(--font-ui);
   font-size: 11px;
   font-weight: 600;
-  color: #2d3748;
-  text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 6px rgba(255,255,255,0.8);
+  color: #1a1a2e;
+  text-shadow: 0 0 3px #fff, 0 0 6px #fff;
 }
+/* Smaller cities */
 .india-label-city span {
   font-family: var(--font-ui);
   font-size: 9px;
-  font-weight: 400;
-  color: #4a5568;
-  text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 5px rgba(255,255,255,0.8);
+  font-weight: 500;
+  color: #2d3436;
+  text-shadow: 0 0 3px #fff, 0 0 5px #fff;
 }
+/* State/UT names */
 .india-label-state span {
   font-family: var(--font-ui);
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 4px rgba(255,255,255,0.95), 0 0 8px rgba(255,255,255,0.85);
+  text-align: center;
+}
+/* Neighbouring country labels */
+.india-label-neighbour span {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: #7f8c8d;
+  letter-spacing: 3px;
+  text-shadow: 0 0 3px #fff;
+  text-align: center;
+}
+.india-label-neighbour-small span {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 700;
+  color: #7f8c8d;
+  letter-spacing: 2px;
+  text-shadow: 0 0 3px #fff;
+}
+/* Water body labels */
+.india-label-water span {
+  font-family: var(--font-body);
+  font-size: 11px;
   font-weight: 300;
-  color: rgba(74, 85, 104, 0.55);
-  letter-spacing: 2.5px;
-  text-shadow: 0 0 3px rgba(255,255,255,0.9);
+  font-style: italic;
+  color: #5b8fb9;
+  letter-spacing: 3px;
+  text-align: center;
+}
+/* State tooltip on hover */
+.state-tooltip {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a2e;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 4px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .map-container .leaflet-popup-content-wrapper {
