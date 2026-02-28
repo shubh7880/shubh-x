@@ -806,6 +806,45 @@ input { font-family: inherit; }
   pointer-events: none;
 }
 
+/* Indian map labels — replacing foreign tile labels */
+.india-label {
+  pointer-events: none !important;
+  white-space: nowrap;
+}
+.india-label span {
+  display: inline-block;
+}
+.india-label-capital span {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a202c;
+  text-shadow: 0 0 4px rgba(255,255,255,0.95), 0 0 8px rgba(255,255,255,0.8);
+  letter-spacing: 0.5px;
+}
+.india-label-major span {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: #2d3748;
+  text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 6px rgba(255,255,255,0.8);
+}
+.india-label-city span {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 400;
+  color: #4a5568;
+  text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 5px rgba(255,255,255,0.8);
+}
+.india-label-state span {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 300;
+  color: rgba(74, 85, 104, 0.55);
+  letter-spacing: 2.5px;
+  text-shadow: 0 0 3px rgba(255,255,255,0.9);
+}
+
 .map-container .leaflet-popup-content-wrapper {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);

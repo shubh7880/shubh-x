@@ -767,13 +767,14 @@ function renderPlaceDetail(id) {
   setTimeout(async () => {
     if (document.getElementById('detailMap')) {
       const map = L.map('detailMap').setView(dest.coords, 10);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+      // No-label basemap — no foreign disputed names
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        attribution: 'Map data &copy; Govt. of India | Tiles &copy; CARTO'
       }).addTo(map);
 
-      // Add India boundary on detail map too
+      // Add India boundary with labels
       const boundary = await loadIndiaBoundary();
-      addIndiaBoundary(map, boundary);
+      addIndiaBoundary(map, boundary, true);
 
       const icon = L.divIcon({
         className: 'custom-marker',
@@ -949,26 +950,89 @@ async function loadIndiaBoundary() {
   }
 }
 
-function addIndiaBoundary(map, geojson) {
+// Indian city labels — only Indian names, no foreign disputed labels
+const indianCityLabels = [
+  { name: 'New Delhi', coords: [28.61, 77.21], size: 'capital' },
+  { name: 'Mumbai', coords: [19.08, 72.88], size: 'major' },
+  { name: 'Kolkata', coords: [22.57, 88.36], size: 'major' },
+  { name: 'Chennai', coords: [13.08, 80.27], size: 'major' },
+  { name: 'Bengaluru', coords: [12.97, 77.59], size: 'major' },
+  { name: 'Hyderabad', coords: [17.38, 78.49], size: 'major' },
+  { name: 'Ahmedabad', coords: [23.02, 72.57], size: 'city' },
+  { name: 'Pune', coords: [18.52, 73.86], size: 'city' },
+  { name: 'Jaipur', coords: [26.92, 75.78], size: 'city' },
+  { name: 'Lucknow', coords: [26.85, 80.95], size: 'city' },
+  { name: 'Chandigarh', coords: [30.73, 76.78], size: 'city' },
+  { name: 'Bhopal', coords: [23.26, 77.41], size: 'city' },
+  { name: 'Patna', coords: [25.60, 85.10], size: 'city' },
+  { name: 'Thiruvananthapuram', coords: [8.52, 76.94], size: 'city' },
+  { name: 'Bhubaneswar', coords: [20.30, 85.82], size: 'city' },
+  { name: 'Guwahati', coords: [26.14, 91.74], size: 'city' },
+  { name: 'Srinagar', coords: [34.08, 74.79], size: 'city' },
+  { name: 'Leh', coords: [34.16, 77.58], size: 'city' },
+  { name: 'Shimla', coords: [31.10, 77.17], size: 'city' },
+  { name: 'Dehradun', coords: [30.32, 78.03], size: 'city' },
+  { name: 'Imphal', coords: [24.82, 93.95], size: 'city' },
+  { name: 'Itanagar', coords: [27.10, 93.62], size: 'city' },
+  { name: 'Kohima', coords: [25.67, 94.12], size: 'city' },
+  { name: 'Shillong', coords: [25.57, 91.88], size: 'city' },
+  { name: 'Agartala', coords: [23.83, 91.28], size: 'city' },
+  { name: 'Aizawl', coords: [23.73, 92.72], size: 'city' },
+  { name: 'Gangtok', coords: [27.33, 88.62], size: 'city' },
+  { name: 'Panaji', coords: [15.50, 73.83], size: 'city' },
+  { name: 'Raipur', coords: [21.25, 81.63], size: 'city' },
+  { name: 'Ranchi', coords: [23.34, 85.31], size: 'city' },
+  { name: 'Jammu', coords: [32.73, 74.87], size: 'city' },
+  { name: 'Kargil', coords: [34.55, 76.13], size: 'city' },
+  { name: 'Port Blair', coords: [11.67, 92.74], size: 'city' },
+  { name: 'Kavaratti', coords: [10.57, 72.64], size: 'city' },
+  // State/UT labels
+  { name: 'JAMMU & KASHMIR', coords: [33.50, 75.30], size: 'state' },
+  { name: 'LADAKH', coords: [34.20, 77.60], size: 'state' },
+  { name: 'RAJASTHAN', coords: [26.50, 72.80], size: 'state' },
+  { name: 'GUJARAT', coords: [22.50, 71.50], size: 'state' },
+  { name: 'MAHARASHTRA', coords: [19.50, 75.50], size: 'state' },
+  { name: 'MADHYA PRADESH', coords: [23.50, 78.50], size: 'state' },
+  { name: 'UTTAR PRADESH', coords: [27.20, 80.50], size: 'state' },
+  { name: 'KARNATAKA', coords: [14.50, 76.00], size: 'state' },
+  { name: 'TAMIL NADU', coords: [11.00, 78.50], size: 'state' },
+  { name: 'KERALA', coords: [10.00, 76.50], size: 'state' },
+  { name: 'ANDHRA PRADESH', coords: [15.90, 79.80], size: 'state' },
+  { name: 'TELANGANA', coords: [17.80, 79.00], size: 'state' },
+  { name: 'ODISHA', coords: [20.50, 84.50], size: 'state' },
+  { name: 'WEST BENGAL', coords: [23.00, 87.50], size: 'state' },
+  { name: 'BIHAR', coords: [25.60, 86.00], size: 'state' },
+  { name: 'ASSAM', coords: [26.20, 92.50], size: 'state' },
+  { name: 'ARUNACHAL PRADESH', coords: [28.00, 94.50], size: 'state' },
+  { name: 'PUNJAB', coords: [31.00, 75.50], size: 'state' },
+  { name: 'HARYANA', coords: [29.00, 76.30], size: 'state' },
+  { name: 'UTTARAKHAND', coords: [30.10, 79.20], size: 'state' },
+  { name: 'HIMACHAL PRADESH', coords: [31.80, 77.50], size: 'state' },
+  { name: 'GOA', coords: [15.40, 74.00], size: 'state' },
+  { name: 'CHHATTISGARH', coords: [21.50, 82.00], size: 'state' },
+  { name: 'JHARKHAND', coords: [23.60, 85.50], size: 'state' },
+];
+
+function addIndiaBoundary(map, geojson, showLabels) {
   if (!geojson) return;
 
-  // Clean filled territory — official Govt. of India map style
+  // India territory — white fill with clean dark border (like official map)
   const indiaStyle = {
-    color: '#4a5568',
-    weight: 1.8,
-    opacity: 0.55,
-    fillColor: '#ffffff',
-    fillOpacity: 0.55,
+    color: '#2d3748',
+    weight: 2,
+    opacity: 0.7,
+    fillColor: '#f7fafc',
+    fillOpacity: 0.65,
     lineJoin: 'round',
     lineCap: 'round',
   };
 
   const islandStyle = {
-    color: '#4a5568',
-    weight: 1.2,
-    opacity: 0.45,
-    fillColor: '#ffffff',
-    fillOpacity: 0.5,
+    color: '#2d3748',
+    weight: 1.5,
+    opacity: 0.6,
+    fillColor: '#f7fafc',
+    fillOpacity: 0.6,
     lineJoin: 'round',
     lineCap: 'round',
   };
@@ -978,6 +1042,28 @@ function addIndiaBoundary(map, geojson) {
       return feature.properties.type === 'island' ? islandStyle : indiaStyle;
     }
   }).addTo(map);
+
+  // Add Indian city/state labels (no foreign tile labels)
+  if (showLabels) {
+    indianCityLabels.forEach(city => {
+      let className, html;
+      if (city.size === 'capital') {
+        className = 'india-label india-label-capital';
+        html = `<span>★ ${city.name}</span>`;
+      } else if (city.size === 'major') {
+        className = 'india-label india-label-major';
+        html = `<span>${city.name}</span>`;
+      } else if (city.size === 'state') {
+        className = 'india-label india-label-state';
+        html = `<span>${city.name}</span>`;
+      } else {
+        className = 'india-label india-label-city';
+        html = `<span>${city.name}</span>`;
+      }
+      const label = L.divIcon({ className, html, iconSize: null, iconAnchor: [0, 0] });
+      L.marker(city.coords, { icon: label, interactive: false }).addTo(map);
+    });
+  }
 }
 
 async function initDestinationsMap() {
@@ -988,20 +1074,17 @@ async function initDestinationsMap() {
     maxZoom: 18,
   }).setView([22.5, 78.9], 5);
 
+  // Plain basemap with NO labels — no foreign disputed names
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    attribution: 'Map data &copy; Govt. of India | Tiles &copy; CARTO',
     maxZoom: 19,
   }).addTo(destMap);
 
-  // Add India label overlay on top
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    pane: 'shadowPane',
-  }).addTo(destMap);
+  // NO label tile layer — we add our own Indian labels only
 
-  // Load and display official India boundary
+  // Load and display official India boundary with Indian labels
   const boundary = await loadIndiaBoundary();
-  addIndiaBoundary(destMap, boundary);
+  addIndiaBoundary(destMap, boundary, true);
 
   destinations.forEach(d => {
     const icon = L.divIcon({
